@@ -4,7 +4,7 @@ const productsModel = {
   getProducts: (queryParams) => {
     const { search, categories, minPrice, maxPrice, sort } = queryParams;
     let query =
-      "select p.product_name, count(t.product_id) as sold, pt.type_name as categories, p.price, p.image, p.description from products p left join producttypes pt on p.type_id = pt.id left join transactions t on p.id = t.product_id ";
+      "select p.product_name, p.price, p.image, c.category_name, p.description, count(t.qty) as sold from products p join categories c on c.id = p.category_id join transactions t on t.product_id = p.id ";
     let checkWhere = true;
 
     if (search) {
@@ -16,7 +16,7 @@ const productsModel = {
     if (categories && categories !== "") {
       query += `${
         checkWhere ? "WHERE" : "AND"
-      } lower(pt.type_name) like lower('${categories}') `;
+      } lower(c.category_name) like lower('${categories}') `;
       checkWhere = false;
     }
     if (minPrice && maxPrice) {
@@ -34,11 +34,12 @@ const productsModel = {
       checkWhere = false;
     }
     if (sort) {
-      query += "group by p.id, pt.type_name ";
+      query += "group by p.id, c.category_name ";
       if (sort.toLowerCase() === "popular")
-        query += "order by count(t.product_id) desc";
-      if (sort.toLowerCase() === "oldest") query += "order by p.created asc";
-      if (sort.toLowerCase() === "newest") query += "order by p.created desc";
+        query += "order by count(t.qty) desc";
+      if (sort.toLowerCase() === "oldest") query += "order by p.created_at asc";
+      if (sort.toLowerCase() === "newest")
+        query += "order by p.created_at desc";
       if (sort.toLowerCase() === "cheapest") query += "order by p.price asc";
       if (sort.toLowerCase() === "priciest") query += "order by p.price desc";
     }
@@ -54,12 +55,21 @@ const productsModel = {
   },
   createProducts: (body) => {
     return new Promise((resolve, reject) => {
+      const timestamp = Date.now() / 1000;
       const query =
-        "insert into products (product_name, price, image, type_id,description, created) values ($1, $2, $3, $4, $5, $6)";
-      const { productname, price, image, typeid, description, created } = body;
+        "insert into products (product_name, price, image, category_id, description, created_at, updated_at) values ($1, $2, $3, $4, $5, to_timestamp($6), to_timestamp($7))";
+      const { productname, price, image, category_id, description } = body;
       db.query(
         query,
-        [productname, price, image, typeid, description, created],
+        [
+          productname,
+          price,
+          image,
+          category_id,
+          description,
+          timestamp,
+          timestamp,
+        ],
         (err, queryResult) => {
           if (err) {
             console.log(err);

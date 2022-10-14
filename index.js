@@ -1,23 +1,18 @@
 const express = require("express");
+const morgan = require("morgan");
+require("dotenv").config();
+const { PORT } = process.env;
 const db = require("./src/config/postgre");
 const mainRouter = require("./src/routes/main");
 const server = express();
-const PORT = 8080;
 
-// http route
-db.connect()
-  .then(() => {
-    console.log("Connect Success");
-
-    //semua routes lewat main
-
-    //parser json
-    server.use(express.json());
-    //parser encoded
-    server.use(express.urlencoded({ extended: false }));
-    server.use(mainRouter);
-    server.listen(PORT, () => {
-      console.log(`running at port ${PORT}`);
-    });
-  })
-  .catch((err) => console.log(err));
+server.use(express.json());
+//parser encoded
+server.use(express.urlencoded({ extended: false }));
+server.use(
+  morgan(":method :url :status :res[content-length] - :response-time ms")
+);
+server.use(mainRouter);
+server.listen(PORT, () => {
+  console.log(`Server Running at Port ${PORT}`);
+});
