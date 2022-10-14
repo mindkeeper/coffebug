@@ -3,8 +3,10 @@ const transactionsModel = require("../model/transactions");
 const transactionsHandler = {
   get: async (req, res) => {
     try {
-      const response = await transactionsModel.getAllTransactions(req.params);
-      res.status(200).json({ result: response.rows });
+      const response = await transactionsModel.getAllTransactions(
+        req.userPayload.id
+      );
+      res.status(200).json({ result: response });
     } catch (error) {
       console.log(error);
       res.status(500).json({ msg: "Internal Server Error" });
@@ -12,7 +14,10 @@ const transactionsHandler = {
   },
   create: async (req, res) => {
     try {
-      const response = await transactionsModel.createTransactions(req.body);
+      const response = await transactionsModel.createTransactions(
+        req.body,
+        req.userPayload.id
+      );
       res.status(201).json({ result: response });
     } catch (error) {
       console.log(error);
