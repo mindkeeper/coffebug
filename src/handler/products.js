@@ -1,12 +1,11 @@
 const productsModel = require("../model/products");
+const response = require("../helper/response");
 
 const productsHandler = {
   get: async (req, res) => {
     try {
       const response = await productsModel.getProducts(req.query);
-      if (response.rows.length === 0)
-        return res.status(404).json({ msg: "Data Not Found" });
-      return res.status(200).json({ result: response.rows });
+      return res.status(200).json({ result: response });
     } catch (error) {
       console.log(error);
       return res.status(500).json({
@@ -16,7 +15,7 @@ const productsHandler = {
   },
   create: async (req, res) => {
     try {
-      const response = await productsModel.createProducts(req.body);
+      const response = await productsModel.createProducts(req.body, req.file);
       return res
         .status(201)
         .json({ result: `${req.body.productname} Added Successfully` });
@@ -26,12 +25,16 @@ const productsHandler = {
   },
   update: async (req, res) => {
     try {
-      const response = await productsModel.updateProducts(req.body, req.params);
+      const response = await productsModel.updateProducts(
+        req.body,
+        req.params.id,
+        req.file
+      );
       if (response.rowCount === 0)
         return res.status(404).json({ msg: "Data Not Found" });
-      return res
-        .status(200)
-        .json({ result: `${req.body.product_name} Changed Successfully` });
+      return res.status(200).json({
+        result: `${response.rows[0].product_name} Changed Successfully`,
+      });
     } catch (error) {
       console.log(error);
       return res.status(500).json({ msg: "Internal Server Error" });
