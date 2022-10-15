@@ -7,6 +7,7 @@ const mainRouter = require("./src/routes/main");
 const server = express();
 
 server.use(express.json());
+server.use(express.static("./public/images"));
 //parser encoded
 server.use(express.urlencoded({ extended: false }));
 server.use(
