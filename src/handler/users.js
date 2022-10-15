@@ -27,12 +27,14 @@ const userHandler = {
     try {
       const response = await userModels.updateUser(
         req.body,
-        req.userPayload.id
+        req.userPayload.id,
+        req.file
       );
       res.status(200).json({
         msg: `${response.rows[0].display_name}, your data has been updated`,
       });
-    } catch (Error) {
+    } catch (error) {
+      console.log(error);
       res.status(500).json({ msg: "internal Server Error" });
     }
   },

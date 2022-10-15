@@ -58,7 +58,7 @@ const userModels = {
           const role = 1;
           db.query(
             userInsert,
-            [email, hashedPwd, timeStamp, timeStamp, 1],
+            [email, hashedPwd, timeStamp, timeStamp, role],
             (error, result) => {
               if (error) {
                 console.log(error);
@@ -81,11 +81,20 @@ const userModels = {
       });
     });
   },
-  updateUser: (body, id) => {
+  updateUser: (body, id, file) => {
     return new Promise((resolve, reject) => {
       const timeStamp = Date.now() / 1000;
       const values = [];
       let query = "update users_profile set ";
+      if (file) {
+        if (Object.keys(body).length > 0) {
+          const imageUrl = `/image/${file.filename} `;
+          query += `image = '${imageUrl}', `;
+        }
+        const imageUrl = `/image/${file.filename}`;
+        query += `image = '${imageUrl}', updated_at = to_timestamp($1) where user_id = $2 returning display_name`;
+        values.push(timeStamp, id);
+      }
       Object.keys(body).forEach((key, index, array) => {
         if (index === array.length - 1) {
           query += `${key} = $${index + 1}, updated_at = to_timestamp($${
