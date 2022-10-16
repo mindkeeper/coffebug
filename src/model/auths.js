@@ -47,6 +47,18 @@ const authsModel = {
       });
     });
   },
+  logout: (token) => {
+    return new Promise((resolve, reject) => {
+      const query = "insert into blacklist_token(token) values($1)";
+      db.query(query, [token], (error, result) => {
+        if (error) {
+          console.log(error);
+          return reject(error);
+        }
+        return resolve({ msg: "Logout Successful" });
+      });
+    });
+  },
 };
 
 module.exports = authsModel;
