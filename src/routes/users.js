@@ -19,7 +19,7 @@ const allowed = [
 ];
 //get all users
 usersRouter.get("/", isLogin(), allowedRoles("User"), userHandler.get);
-usersRouter.post("/", userHandler.create);
+usersRouter.post("/register", userHandler.create);
 usersRouter.patch(
   "/:id",
   isLogin(),
