@@ -3,6 +3,19 @@ const transactionsRouter = express.Router();
 const transactionsHandler = require("../handler/transactions");
 const isLogin = require("../middleware/isLogin");
 const allowedRoles = require("../middleware/allowedRoles");
+const validate = require("../middleware/validate");
+const isAllowed = [
+  "user_id",
+  "product_id",
+  "size_id",
+  "qty",
+  "promo_id",
+  "subtotal",
+  "delivery_id",
+  "total",
+  "payment_id",
+  "status_id",
+];
 
 transactionsRouter.get(
   "/history",
@@ -13,7 +26,8 @@ transactionsRouter.get(
 transactionsRouter.post(
   "/",
   isLogin(),
-  allowedRoles("User", "Admin"),
+  allowedRoles("Admin"),
+  validate.body(...isAllowed),
   transactionsHandler.create
 );
 transactionsRouter.patch(
