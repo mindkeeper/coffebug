@@ -4,7 +4,8 @@ const transactionsHandler = {
   get: async (req, res) => {
     try {
       const response = await transactionsModel.getAllTransactions(
-        req.userPayload.id
+        req.userPayload.id,
+        req.query
       );
       res.status(200).json({ result: response });
     } catch (error) {
