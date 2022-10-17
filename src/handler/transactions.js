@@ -1,4 +1,5 @@
 const transactionsModel = require("../model/transactions");
+const resHelper = require("../helper/sendResponse");
 
 const transactionsHandler = {
   get: async (req, res) => {
@@ -7,22 +8,19 @@ const transactionsHandler = {
         req.userPayload.id,
         req.query
       );
-      res.status(200).json({ result: response });
+      return resHelper.success(res, response.status, response);
     } catch (error) {
       console.log(error);
-      res.status(500).json({ msg: "Internal Server Error" });
+      return resHelper.error(res, error.status, error);
     }
   },
   create: async (req, res) => {
     try {
-      const response = await transactionsModel.createTransactions(
-        req.body,
-        req.userPayload.id
-      );
-      res.status(201).json({ result: response });
+      const response = await transactionsModel.createTransactions(req.body);
+      return resHelper.success(res, response.status, response);
     } catch (error) {
       console.log(error);
-      res.status(500).json({ msg: "Internal Server Error" });
+      return resHelper.error(res, error.status, error);
     }
   },
   update: async (req, res) => {
@@ -31,19 +29,18 @@ const transactionsHandler = {
         req.body,
         req.params
       );
-      res.status(200).json({ result: response });
+      return resHelper.success(res, response.status, response);
     } catch (error) {
       console.log(error);
-      res.status(500).json({ msg: "Internal Server Error" });
+      return resHelper.error(res, error.status, error);
     }
   },
   drop: async (req, res) => {
     try {
       const response = await transactionsModel.dropTransactions(req.params);
-      res.status(200).json({ result: response });
+      return resHelper.success(res, response.status, response);
     } catch (error) {
-      console.log(error);
-      res.status(500).json({ msg: "Internal Server Error" });
+      return resHelper.success(res, error.status, error);
     }
   },
   bestSeller: async (req, res) => {
