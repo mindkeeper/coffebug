@@ -30,10 +30,16 @@ const validate = {
       for (let key of sanitizedQuery) {
         Object.assign(newQuery, { [key]: query[key] });
       }
-      if (Object.keys(newQuery).length === 0)
-        return res.status(400).json({ msg: "Nothing inserted" });
 
       req.query = newQuery;
+      next();
+    };
+  },
+  chekUpload: () => {
+    return (req, res, next) => {
+      const { file } = req;
+      if (!file)
+        return res.status(400).json({ msg: "You must Upload an Image" });
       next();
     };
   },

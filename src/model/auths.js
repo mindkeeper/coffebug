@@ -8,24 +8,37 @@ const authsModel = {
       const { email, password } = body;
       const getPwdQuery =
         "select u.id, u.email, u.password, r.role from users u left join roles r on u.role_id = r.id where email = $1";
-      const invalidCridentials = new Error("Email/Password is Wrong!");
+      const invalidCridentials = "Email/Password is Wrong!";
       const statusCode = 401;
 
       db.query(getPwdQuery, [email], (error, response) => {
         if (error) {
           console.log(error);
-          return reject({ error });
+          return reject({
+            status: 500,
+            error: { msg: "Internal Server Error" },
+          });
         }
         //return resolve(response.rows[0].password);
         if (response.rows.length === 0)
-          return reject({ error: invalidCridentials, statusCode });
+          return reject({
+            status: statusCode,
+            error: { msg: invalidCridentials },
+          });
         const hashedPwd = response.rows[0].password;
         bcrypt.compare(password, hashedPwd, (error, isSame) => {
           if (error) {
             console.log(error);
-            return reject({ error });
+            return reject({
+              status: 500,
+              error: { msg: "Internal Server Error" },
+            });
           }
-          if (!isSame) return reject({ error: invalidCridentials, statusCode });
+          if (!isSame)
+            return reject({
+              status: statusCode,
+              error: { msg: invalidCridentials },
+            });
           const payload = {
             id: response.rows[0].id,
             email: response.rows[0].email,
@@ -38,9 +51,16 @@ const authsModel = {
             (error, token) => {
               if (error) {
                 console.log(error);
-                return reject({ error });
+                return reject({
+                  status: 500,
+                  error: { msg: "Internal Server Error" },
+                });
               }
-              return resolve({ token, payload });
+              return resolve({
+                status: 200,
+                msg: "Login Successfull",
+                data: { token, payload },
+              });
             }
           );
         });
@@ -53,9 +73,12 @@ const authsModel = {
       db.query(query, [token], (error, result) => {
         if (error) {
           console.log(error);
-          return reject(error);
+          return reject({
+            status: 500,
+            error: { msg: "Internal Server Error" },
+          });
         }
-        return resolve({ msg: "Logout Successful" });
+        return resolve({ status: 200, msg: "Logout Successful" });
       });
     });
   },
