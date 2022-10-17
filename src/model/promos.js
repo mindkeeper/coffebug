@@ -122,6 +122,11 @@ const promosModel = {
             msg: "Internal Server Error",
           });
         }
+        if (result.rows.length === 0)
+          return reject({
+            status: 404,
+            msg: "Update promo failed, promo not found",
+          });
         return resolve({
           status: 201,
           msg: `promo ${result.rows[0].code} updated sucessfully`,
