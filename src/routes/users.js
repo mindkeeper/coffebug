@@ -21,14 +21,19 @@ const allowed = [
 usersRouter.get("/", isLogin(), allowedRoles("User"), userHandler.get);
 usersRouter.post("/register", userHandler.create);
 usersRouter.patch(
-  "/:id",
+  "/edit-profile",
   isLogin(),
   allowedRoles("User"),
   uploads.single("image"),
   validate.patchBody(...allowed),
   userHandler.update
 );
-usersRouter.delete("/:id", isLogin(), allowedRoles("User"), userHandler.drop);
-usersRouter.patch("/password/:id", userHandler.editPassword);
+usersRouter.delete(
+  "/delete",
+  isLogin(),
+  allowedRoles("User"),
+  userHandler.drop
+);
+usersRouter.patch("/password/", isLogin(), userHandler.editPassword);
 //export
 module.exports = usersRouter;

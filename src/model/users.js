@@ -4,10 +4,13 @@ const userModels = {
   getUsers: (id) => {
     return new Promise((resolve, reject) => {
       const query =
-        "select up.*, u.email from users_profile up join users u on u.id = up.user_id where up.user_id =$1";
+        "select up.username, up.first_name, up.last_name, up.display_name,up.gender, up.birthday, up.address, up.image, up.phone, u.email from users_profile up join users u on u.id = up.user_id where up.user_id =$1";
       db.query(query, [id], (error, result) => {
-        if (error) return reject(error);
-        return resolve(result);
+        if (error) {
+          console.log(error);
+          return reject({ status: 500, msg: "Internal Server Error" });
+        }
+        return resolve({ status: 200, data: result.rows });
       });
     });
   },
@@ -28,9 +31,8 @@ const userModels = {
       db.query(checkEmailandPhone, [phone, email], (error, checkResult) => {
         if (error) {
           console.log(error);
-          return reject({ error });
+          return reject({ status: 500, msg: "Internal Server Error" });
         }
-        //return resolve(checkResult.rows);
         if (checkResult.rows.length > 0) {
           const errorMessage = [];
           if (
@@ -38,22 +40,22 @@ const userModels = {
             (checkResult.rows[0].phone == phone &&
               checkResult.rows[0].email == email)
           )
-            errorMessage.push("Email and phone number already exist", 403);
+            errorMessage.push(403, "Email and phone number already exist");
 
           if (checkResult.rows[0].phone == phone)
-            errorMessage.push("Phone number already exist", 403);
+            errorMessage.push(403, "Phone number already exist");
           if (checkResult.rows[0].email == email)
-            errorMessage.push("Email already exist", 403);
+            errorMessage.push(403, "Email already exist");
 
           return reject({
-            error: new Error(errorMessage[0]),
-            statusCode: errorMessage[1],
+            status: errorMessage[0],
+            msg: errorMessage[1],
           });
         }
         bcrypt.hash(password, 10, (error, hashedPwd) => {
           if (error) {
             console.log(error);
-            return reject({ error });
+            return reject({ status: 500, msg: "internal server error" });
           }
           const role = 1;
           db.query(
@@ -62,17 +64,22 @@ const userModels = {
             (error, result) => {
               if (error) {
                 console.log(error);
-                return reject({ error });
+                return reject({ status: 500, msg: "Internal Server Error" });
               }
               db.query(
                 profileInsert,
                 [result.rows[0].id, phone, timeStamp, timeStamp],
                 (error, profileResult) => {
                   if (error) {
-                    console.log(error);
-                    return reject({ error });
+                    return reject({
+                      status: 500,
+                      msg: "Internal Server Error",
+                    });
                   }
-                  return resolve(result);
+                  return resolve({
+                    status: 201,
+                    msg: `Congrats ${body.email}, your account created successfully`,
+                  });
                 }
               );
             }
@@ -110,66 +117,73 @@ const userModels = {
       db.query(query, values, (error, result) => {
         if (error) {
           console.log(error);
-          return reject(error);
+          return reject({ status: 500, msg: "Internal Server Error" });
         }
-        return resolve(result);
+        return resolve({
+          status: 200,
+          msg: `${result.rows[0].display_name}, your profile successfully updated`,
+        });
       });
-      // const checkUsername =
-      //   "select username from users_profile where username = $1";
-      // db.query(checkUsername, username, (err, checkResult) => {
-      //   if (err) return reject({ err });
-      //   return resolve(checkResult);
-      //   if (checkResult.rows.length > 0)
-      //     return reject({
-      //       err: new Error("Username Already Taken"),
-      //       statusCode: 403,
-      //     });
-      //   return resolve("Success");
-      // });
     });
   },
-  dropUser: (params) => {
+  dropUser: (id) => {
     return new Promise((resolve, reject) => {
-      const query = "delete from users where id = $1";
-      db.query(query, [params.id], (error, result) => {
-        if (error) return reject(error);
-        return resolve(result);
+      const query = "delete from users where id = $1 returning email";
+      const delprofileQuery = "delete from users_profile where user_id = $1";
+      db.query(delprofileQuery, [id], (error, result) => {
+        if (error) {
+          console.log(error);
+          return reject({ status: 500, msg: "Internal Server Error" });
+        }
+        db.query(query, [id], (error, deleteResult) => {
+          if (error) {
+            console.log(error);
+            return reject({ status: 500, msg: "Internal Server Error" });
+          }
+          return resolve({
+            status: 200,
+            msg: `${deleteResult.rows[0].email}, your account has been deleted`,
+          });
+        });
       });
     });
   },
-  editPassword: (body, params) => {
+  editPassword: (body, id) => {
     return new Promise((resolve, reject) => {
       const getPasswordQuery = "select password from users where id = $1";
       const { old_password, new_password } = body;
-      db.query(getPasswordQuery, [params], (error, response) => {
+      db.query(getPasswordQuery, [id], (error, response) => {
         if (error) {
           console.log(error);
-          return reject({ error });
+          return reject({ status: 500, msg: "Internal Server Error" });
         }
-        //return resolve(response.rows);
         const oldHashedPwd = response.rows[0].password;
         bcrypt.compare(old_password, oldHashedPwd, (error, isSame) => {
           if (error) {
             console.log(error);
-            return reject({ error });
+            return reject({ status: 500, msg: "Internal Server Error" });
           }
           if (!isSame)
             return reject({
-              error: new Error("Wrong old password"),
-              statusCode: 403,
+              status: 403,
+              msg: "Wrong old password",
             });
           bcrypt.hash(new_password, 10, (error, newHashedPwd) => {
             if (error) {
               console.log(error);
-              return reject({ error });
+              return reject({ status: 500, msg: "Internal Server Error" });
             }
-            const editPwdQuery = "update users set password = $1 where id = $2";
-            db.query(editPwdQuery, [newHashedPwd, params], (error, result) => {
+            const editPwdQuery =
+              "update users set password = $1 where id = $2 returning email";
+            db.query(editPwdQuery, [newHashedPwd, id], (error, result) => {
               if (error) {
                 console.log(error);
-                return reject({ error });
+                return reject({ status: 500, msg: "Internal Server Error" });
               }
-              return resolve(result);
+              return resolve({
+                status: 200,
+                msg: `${result.rows[0].email}, your password has been updated`,
+              });
             });
           });
         });
