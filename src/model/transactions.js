@@ -14,10 +14,11 @@ const transactionsModel = {
       db.query(countQuery, [id], (error, result) => {
         if (error) {
           console.log(error);
-          return reject(error);
+          return reject({ status: 500, msg: "Internal Server Error" });
         }
         if (result.rows.length === 0)
-          return reject({ msg: new Error("not found") });
+          return reject({ status: 404, msg: "Data not found" });
+
         const totalData = result.rows[0].count;
         const sqlLimit = !limit ? 3 : parseInt(limit);
         const sqlOffset =
@@ -51,6 +52,8 @@ const transactionsModel = {
             console.log(error);
             return reject(error);
           }
+          if (result.rows.length === 0)
+            return reject({ status: 404, msg: "Data not found" });
           return resolve({
             result: {
               msg: "List products",
@@ -62,11 +65,12 @@ const transactionsModel = {
       });
     });
   },
-  createTransactions: (body, id) => {
+  createTransactions: (body) => {
     return new Promise((resolve, reject) => {
       const query =
         "insert into transactions (user_id, product_id, size_id, qty, promo_id, subtotal, delivery_id, total, payment_id, status_id, created_at, updated_at) values($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, to_timestamp($11), to_timestamp($12))";
       const {
+        user_id,
         product_id,
         size_id,
         qty,
@@ -78,7 +82,6 @@ const transactionsModel = {
         status_id,
       } = body;
       const timeStamp = Date.now() / 1000;
-      const user_id = id;
       const values = [
         user_id,
         product_id,
@@ -97,8 +100,11 @@ const transactionsModel = {
       // return console.log(values);
 
       db.query(query, values, (error, result) => {
-        if (error) return reject(error);
-        return resolve(result);
+        if (error) {
+          console.log(error);
+          return reject({ status: 500, msg: "Internal server error" });
+        }
+        return resolve({ status: 201, msg: "transaction created" });
       });
     });
   },
@@ -108,7 +114,9 @@ const transactionsModel = {
       let query = "update transactions set ";
       Object.keys(body).forEach((key, index, array) => {
         if (index === array.length - 1) {
-          query += `${key} = $${index + 1} where id  = $${index + 2}`;
+          query += `${key} = $${index + 1} where id  = $${
+            index + 2
+          } returning id`;
           values.push(body[key], params.id);
           return;
         }
@@ -117,17 +125,41 @@ const transactionsModel = {
       });
 
       db.query(query, values, (error, result) => {
-        if (error) return reject(error);
-        return resolve(result);
+        if (error) {
+          return reject({ status: 500, msg: "Internal Server Error" });
+        }
+        if (result.rowCount === 0)
+          return reject({
+            status: 400,
+            msg: "transaction not found, update failed",
+          });
+        return resolve({
+          status: 200,
+          msg: `transaction with id ${result.rows[0].id} updated successfully`,
+        });
       });
     });
   },
   dropTransactions: (params) => {
     return new Promise((resolve, reject) => {
-      const query = "delete from transactions where id = $1";
+      const query = "delete from transactions where id = $1 returning id";
       db.query(query, [params.id], (error, result) => {
-        if (error) return reject(error);
-        return resolve(result);
+        if (error) {
+          console.log(error);
+          return reject({
+            status: 500,
+            msg: "Internnal Server Error",
+          });
+        }
+        if (result.rowCount === 0)
+          return reject({
+            status: 400,
+            msg: "transaction not found, deletion failed",
+          });
+        return resolve({
+          status: 200,
+          msg: `transaction with id ${result.rows[0].id} deleted successfully`,
+        });
       });
     });
   },
