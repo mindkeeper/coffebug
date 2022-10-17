@@ -94,9 +94,14 @@ const productsModel = {
 
       // console.log(countQuery);
       console.log(sqlLimit);
-      db.query(countQuery, (err, result) => {
-        if (err) return reject(err);
-        // return resolve(result.rows);
+      db.query(countQuery, (error, result) => {
+        if (error) {
+          console.log(error);
+          return reject({
+            status: 500,
+            error: { msg: "internal Server Error" },
+          });
+        }
         const totalData = result.rows[0].count;
         const currentPage = page ? parseInt(page) : 1;
         const totalPage =
@@ -110,7 +115,7 @@ const productsModel = {
             : link + `page=${currentPage - 1}&limit=${parseInt(sqlLimit)}`;
 
         const next =
-          currentPage + 1 >= totalPage
+          currentPage + 1 > totalPage
             ? null
             : link + `page=${currentPage + 1}&limit=${parseInt(sqlLimit)}`;
 
@@ -126,14 +131,21 @@ const productsModel = {
         db.query(query, [sqlLimit, sqlOffset], (error, result) => {
           if (error) {
             console.log(error);
-            return reject(error);
+            return reject({
+              status: 500,
+              error: { msg: "internal Server Error" },
+            });
           }
+          if (result.rows.length === 0)
+            return reject({
+              status: 404,
+              error: { msg: "Data Not Found" },
+            });
           return resolve({
-            result: {
-              msg: "List products",
-              data: result.rows,
-              meta,
-            },
+            status: 200,
+            msg: "List products",
+            data: result.rows,
+            meta,
           });
         });
       });
@@ -143,7 +155,7 @@ const productsModel = {
     return new Promise((resolve, reject) => {
       const timestamp = Date.now() / 1000;
       const query =
-        "insert into products (product_name, price, image, category_id, description, created_at, updated_at) values ($1, $2, $3, $4, $5, to_timestamp($6), to_timestamp($7))";
+        "insert into products (product_name, price, image, category_id, description, created_at, updated_at) values ($1, $2, $3, $4, $5, to_timestamp($6), to_timestamp($7)) returning product_name";
       const { productname, price, category_id, description } = body;
       const imageUrl = `/images/${file.filename}`;
       db.query(
@@ -157,62 +169,78 @@ const productsModel = {
           timestamp,
           timestamp,
         ],
-        (err, queryResult) => {
-          if (err) {
-            console.log(err);
-            return reject(err);
+        (error, queryResult) => {
+          if (error) {
+            console.log(error);
+            return reject({
+              status: 500,
+              error: { msg: "Internal Server Error" },
+            });
           }
-          resolve(queryResult);
+          const productName = queryResult.rows[0].product_name;
+          resolve({ status: 201, msg: `${productName} added to database` });
         }
       );
     });
   },
   updateProducts: (body, id, file) => {
     return new Promise((resolve, reject) => {
+      const timestamp = Date.now() / 1000;
       let query = "update products set ";
       const input = [];
       if (file) {
+        if (Object.keys(body).length === 0) {
+          const imageUrl = `/image/${file.filename}`;
+          query += `image = '${imageUrl}', updated_at = to_timestamp($1) where id = $2 returning product_name`;
+          input.push(timestamp, id);
+        }
         if (Object.keys(body).length > 0) {
           const imageUrl = `/image/${file.filename}`;
-          query += `images = ${imageUrl} `;
+          query += `image = '${imageUrl}', `;
         }
-        const imageUrl = `/image/${file.filename}`;
-        query += `image = '${imageUrl}' where id = $1 returning product_name`;
-        input.push(id);
       }
       //
       Object.keys(body).forEach((element, index, array) => {
         if (index === array.length - 1) {
-          query += `${element} = $${index + 1} where id = $${
+          query += `${element} = $${index + 1}, updated_at = to_timestamp($${
             index + 2
-          } returning product_name`;
-          input.push(body[element], id);
+          }) where id = $${index + 3} returning product_name`;
+          input.push(body[element], timestamp, id);
           return;
         }
         query += `${element} = $${index + 1}, `;
         input.push(body[element]);
       });
-      //   res.json({ query, input });
-
-      db.query(query, input)
-        .then((response) => {
-          resolve(response);
-        })
-        .catch((error) => {
+      db.query(query, input, (error, result) => {
+        if (error) {
           console.log(error);
-          reject(error);
+          return reject({
+            status: 500,
+            error: { msg: "Internal server error" },
+          });
+        }
+        return resolve({
+          status: 200,
+          msg: `${result.rows[0].product_name} updated`,
         });
+      });
     });
   },
   dropProducts: (params) => {
     return new Promise((resolve, reject) => {
-      const query = "delete from products where id = $1";
+      const query = "delete from products where id = $1 returning product_name";
       db.query(query, [params.id], (error, response) => {
         if (error) {
           console.log(error);
-          reject(error);
+          return reject({
+            status: 500,
+            error: { msg: "Internal server error" },
+          });
         }
-        resolve(response);
+        return resolve({
+          status: 200,
+          msg: `${response.rows[0].product_name} deleted`,
+        });
       });
     });
   },

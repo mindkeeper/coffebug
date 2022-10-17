@@ -6,7 +6,7 @@ const allowedRoles = require("../middleware/allowedRoles");
 const validate = require("../middleware/validate");
 
 const allowed = {
-  query: ["code"],
+  query: ["code", "page", "limit"],
   body: ["code", "discount", "description", "duration"],
 };
 promosRouter.get(

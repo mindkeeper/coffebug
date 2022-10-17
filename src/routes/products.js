@@ -26,6 +26,7 @@ productsRouter.post(
   isLogin(),
   allowedRoles("Admin"),
   uploads.single("image"),
+  validate.chekUpload(),
   validate.body(...allowed.body),
   create
 );
