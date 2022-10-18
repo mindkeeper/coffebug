@@ -93,14 +93,16 @@ const userModels = {
       const timeStamp = Date.now() / 1000;
       const values = [];
       let query = "update users_profile set ";
+      let imageUrl = "";
       if (file) {
+        imageUrl = `/image/${file.filename} `;
         if (Object.keys(body).length > 0) {
-          const imageUrl = `/image/${file.filename} `;
           query += `image = '${imageUrl}', `;
         }
-        const imageUrl = `/image/${file.filename}`;
-        query += `image = '${imageUrl}', updated_at = to_timestamp($1) where user_id = $2 returning display_name`;
-        values.push(timeStamp, id);
+        if (Object.keys(body).length === 0) {
+          query += `image = '${imageUrl}', updated_at = to_timestamp($1) where user_id = $2 returning display_name`;
+          values.push(timeStamp, id);
+        }
       }
       Object.keys(body).forEach((key, index, array) => {
         if (index === array.length - 1) {
@@ -113,15 +115,19 @@ const userModels = {
         query += `${key} = $${index + 1}, `;
         values.push(body[key]);
       });
-
+      console.log(query);
       db.query(query, values, (error, result) => {
         if (error) {
           console.log(error);
           return reject({ status: 500, msg: "Internal Server Error" });
         }
+        let data = {};
+        if (file) data = { Image: imageUrl, ...result.rows[0] };
+        data = { Image: imageUrl, ...result.rows[0] };
         return resolve({
           status: 200,
           msg: `${result.rows[0].display_name}, your profile successfully updated`,
+          data,
         });
       });
     });
@@ -143,6 +149,7 @@ const userModels = {
           return resolve({
             status: 200,
             msg: `${deleteResult.rows[0].email}, your account has been deleted`,
+            data: { ...deleteResult.rows[0] },
           });
         });
       });
