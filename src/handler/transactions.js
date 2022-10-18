@@ -2,6 +2,16 @@ const transactionsModel = require("../model/transactions");
 const resHelper = require("../helper/sendResponse");
 
 const transactionsHandler = {
+  getTransactionById: async (req, res) => {
+    try {
+      const response = await transactionsModel.getTransactionById(
+        req.params.id
+      );
+      resHelper.success(res, response.status, response);
+    } catch (error) {
+      resHelper.error(res, error.status, error);
+    }
+  },
   get: async (req, res) => {
     try {
       const response = await transactionsModel.getAllTransactions(
@@ -40,16 +50,7 @@ const transactionsHandler = {
       const response = await transactionsModel.dropTransactions(req.params);
       return resHelper.success(res, response.status, response);
     } catch (error) {
-      return resHelper.success(res, error.status, error);
-    }
-  },
-  bestSeller: async (req, res) => {
-    try {
-      const response = await transactionsModel.getBestSeller();
-      res.status(200).json({ result: response.rows });
-    } catch (error) {
-      console.log(error);
-      res.status(500).json({ msg: "Internal Server Error" });
+      return resHelper.error(res, error.status, error);
     }
   },
 };

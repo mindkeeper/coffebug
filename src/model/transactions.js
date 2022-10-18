@@ -1,6 +1,26 @@
 const db = require("../config/postgre");
+const { error } = require("../helper/sendResponse");
 
 const transactionsModel = {
+  getTransactionById: (id) => {
+    return new Promise((resolve, reject) => {
+      const query =
+        "select t.created_at, u.display_name, p.product_name, s.size , p.price,t.qty, pr.code, d.method_name, py.method_name, t.subtotal, t.total, st.status_name from transactions t join users_profile u on u.user_id = t.user_id join products p on p.id = t.product_id join sizes s on s.id = t.size_id join promos pr on pr.id = t.promo_id join deliveries d on d.id = t.delivery_id join payments py on py.id = t.payment_id join status st on st.id = t.status_id where t.id = $1";
+      db.query(query, [id], (error, result) => {
+        if (error) {
+          console.log(error);
+          return reject({ status: 500, msg: "Internal Server Error" });
+        }
+        if (result.rows.length === 0)
+          return reject({ status: 404, msg: "Transaction cannot be found" });
+        return resolve({
+          status: 200,
+          msg: "Transaction Details",
+          data: { ...result.rows[0] },
+        });
+      });
+    });
+  },
   getAllTransactions: (id, queryParams) => {
     return new Promise((resolve, reject) => {
       const { page, limit } = queryParams;
@@ -19,7 +39,7 @@ const transactionsModel = {
         if (result.rows.length === 0)
           return reject({ status: 404, msg: "Data not found" });
 
-        const totalData = result.rows[0].count;
+        const totalData = parseInt(result.rows[0].count);
         const sqlLimit = !limit ? 3 : parseInt(limit);
         const sqlOffset =
           !page || page === "1" ? 0 : parseInt(page - 1) * limit;
@@ -30,12 +50,12 @@ const transactionsModel = {
             : Math.ceil(totalData / parseInt(sqlLimit));
 
         const prev =
-          currentPage - 1 <= 0
+          currentPage === 0
             ? null
             : link + `page=${currentPage - 1}&limit=${parseInt(sqlLimit)}`;
 
         const next =
-          currentPage + 1 > totalPage
+          currentPage === totalPage
             ? null
             : link + `page=${currentPage + 1}&limit=${parseInt(sqlLimit)}`;
         const meta = {
@@ -50,16 +70,15 @@ const transactionsModel = {
         db.query(query, [id, sqlLimit, sqlOffset], (error, result) => {
           if (error) {
             console.log(error);
-            return reject(error);
+            return reject({ status: 404, msg: "Internal Server Error" });
           }
           if (result.rows.length === 0)
             return reject({ status: 404, msg: "Data not found" });
           return resolve({
-            result: {
-              msg: "List products",
-              data: result.rows,
-              meta,
-            },
+            status: 200,
+            msg: "List products",
+            data: result.rows,
+            meta,
           });
         });
       });
@@ -68,7 +87,7 @@ const transactionsModel = {
   createTransactions: (body) => {
     return new Promise((resolve, reject) => {
       const query =
-        "insert into transactions (user_id, product_id, size_id, qty, promo_id, subtotal, delivery_id, total, payment_id, status_id, created_at, updated_at) values($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, to_timestamp($11), to_timestamp($12))";
+        "insert into transactions (user_id, product_id, size_id, qty, promo_id, subtotal, delivery_id, total, payment_id, status_id, created_at, updated_at) values($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, to_timestamp($11), to_timestamp($12)) returning *";
       const {
         user_id,
         product_id,
@@ -104,7 +123,11 @@ const transactionsModel = {
           console.log(error);
           return reject({ status: 500, msg: "Internal server error" });
         }
-        return resolve({ status: 201, msg: "transaction created" });
+        return resolve({
+          status: 201,
+          msg: "transaction created",
+          data: { ...result.rows[0] },
+        });
       });
     });
   },
@@ -136,13 +159,14 @@ const transactionsModel = {
         return resolve({
           status: 200,
           msg: `transaction with id ${result.rows[0].id} updated successfully`,
+          data: { id: params.id, ...body },
         });
       });
     });
   },
   dropTransactions: (params) => {
     return new Promise((resolve, reject) => {
-      const query = "delete from transactions where id = $1 returning id";
+      const query = "delete from transactions where id = $1 returning *";
       db.query(query, [params.id], (error, result) => {
         if (error) {
           console.log(error);
@@ -159,6 +183,7 @@ const transactionsModel = {
         return resolve({
           status: 200,
           msg: `transaction with id ${result.rows[0].id} deleted successfully`,
+          data: { ...result.rows[0] },
         });
       });
     });
