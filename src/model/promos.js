@@ -3,7 +3,7 @@ const db = require("../config/postgre");
 const promosModel = {
   getPromos: (params) => {
     return new Promise((resolve, reject) => {
-      let link = "http://localhost:8080/api/promos?";
+      let link = "/api/promos?";
       const { code, page, limit } = params;
       const countQuery =
         "select count(id) as count from promos where lower(code) like lower($1)";
@@ -24,21 +24,21 @@ const promosModel = {
             msg: "Internal server error",
           });
         }
-        const totalData = result.rows[0].count;
+        const totalData = parseInt(result.rows[0].count);
         const currentPage = page ? parseInt(page) : 1;
         const totalPage =
           sqlLimit > totalData ? 1 : Math.ceil(totalData / limit);
         const prev =
-          currentPage - 1 <= 0
+          currentPage === 0
             ? null
             : link + `page=${currentPage - 1}&limit=${sqlLimit}`;
         const next =
-          currentPage + 1 > totalPage
+          currentPage === totalPage
             ? null
             : link + `page=${currentPage + 1}&limit=${sqlLimit}`;
         const meta = {
           page: currentPage,
-          totalData,
+          totalPage,
           limit: sqlLimit,
           totalData,
           prev,
@@ -67,7 +67,7 @@ const promosModel = {
   createPromo: (body) => {
     return new Promise((resolve, reject) => {
       const query =
-        "insert into promos(code, discount, description, duration, created_at, updated_at) values($1, $2, $3, $4, to_timestamp($5), to_timestamp($6)) returning code";
+        "insert into promos(code, discount, description, duration, created_at, updated_at) values($1, $2, $3, $4, to_timestamp($5), to_timestamp($6)) returning *";
       const { code, discount, description, duration } = body;
       const timestamp = Date.now() / 1000;
       db.query(
@@ -92,6 +92,7 @@ const promosModel = {
           return resolve({
             status: 201,
             msg: `promo ${result.rows[0].code} created sucessfully`,
+            data: { ...result.rows[0] },
           });
         }
       );
@@ -130,13 +131,14 @@ const promosModel = {
         return resolve({
           status: 201,
           msg: `promo ${result.rows[0].code} updated sucessfully`,
+          data: { id: params.id, ...body },
         });
       });
     });
   },
   dropPromo: (params) => {
     return new Promise((resolve, reject) => {
-      const query = "delete from promos where id = $1 returning code";
+      const query = "delete from promos where id = $1 returning *";
       db.query(query, [params.id], (error, result) => {
         if (error) {
           console.log(error);
@@ -153,6 +155,7 @@ const promosModel = {
         return resolve({
           status: 201,
           msg: `promo ${result.rows[0].code} deleted sucessfully`,
+          data: { ...result.rows[0] },
         });
       });
     });
