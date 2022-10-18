@@ -18,9 +18,15 @@ const isAllowed = [
 ];
 
 transactionsRouter.get(
+  "/:id",
+  isLogin(),
+  allowedRoles("User", "Admin"),
+  transactionsHandler.getTransactionById
+);
+transactionsRouter.get(
   "/history",
   isLogin(),
-  allowedRoles("User"),
+  allowedRoles("User", "Admin"),
   transactionsHandler.get
 );
 transactionsRouter.post(
