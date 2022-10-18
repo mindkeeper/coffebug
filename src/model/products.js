@@ -1,6 +1,26 @@
+const { response } = require("express");
 const db = require("../config/postgre");
 
 const productsModel = {
+  getProductById: (id) => {
+    return new Promise((resolve, reject) => {
+      const query =
+        "select p.product_name, p.price, p.image, c.category_name, p.description, count(t.qty) as sold from products p join categories c on c.id = p.category_id left join transactions t on t.product_id = p.id where p.id = $1 group by product_name, price , image, c.category_name , description";
+      db.query(query, [id], (error, result) => {
+        if (error) {
+          console.log(error);
+          return reject({ status: 500, msg: "Internal Server Error" });
+        }
+        if (response.rows === 0)
+          return reject({ status: 404, msg: "Data Not Found" });
+        return resolve({
+          status: 200,
+          msg: "Detail Product",
+          data: { ...result.rows[0] },
+        });
+      });
+    });
+  },
   getProducts: (queryParams) => {
     return new Promise((resolve, reject) => {
       const { search, categories, minPrice, maxPrice, sort, limit, page } =
@@ -8,10 +28,10 @@ const productsModel = {
       let query =
         "select p.product_name, p.price, p.image, c.category_name, p.description from products p join categories c on c.id = p.category_id left join transactions t on t.product_id = p.id ";
       let countQuery =
-        "select count(*) as count from products p join categories c on c.id = p.category_id left join transactions t on t.product_id = p.id ";
+        "select count(p.id) as count from products p join categories c on c.id = p.category_id  ";
 
       let checkWhere = true;
-      let link = "http://localhost:8080/api/products?";
+      let link = "/api/products?";
 
       if (search) {
         link += `search${search}&`;
@@ -99,10 +119,12 @@ const productsModel = {
           console.log(error);
           return reject({
             status: 500,
-            error: { msg: "internal Server Error" },
+            msg: "internal Server Error",
           });
         }
+
         const totalData = result.rows[0].count;
+
         const currentPage = page ? parseInt(page) : 1;
         const totalPage =
           parseInt(sqlLimit) > totalData
@@ -110,20 +132,19 @@ const productsModel = {
             : Math.ceil(totalData / parseInt(sqlLimit));
 
         const prev =
-          currentPage - 1 <= 0
+          currentPage === 1
             ? null
             : link + `page=${currentPage - 1}&limit=${parseInt(sqlLimit)}`;
 
         const next =
-          currentPage + 1 > totalPage
+          currentPage === totalPage
             ? null
             : link + `page=${currentPage + 1}&limit=${parseInt(sqlLimit)}`;
-
         const meta = {
           page: currentPage,
           totalPage,
           limit: parseInt(sqlLimit),
-          totalData,
+          totalData: parseInt(totalData),
           prev,
           next,
         };
@@ -133,13 +154,14 @@ const productsModel = {
             console.log(error);
             return reject({
               status: 500,
-              error: { msg: "internal Server Error" },
+              msg: "internal Server Error",
             });
           }
+          console.log(countQuery, "\n", query, totalData, result.rows.length);
           if (result.rows.length === 0)
             return reject({
               status: 404,
-              error: { msg: "Data Not Found" },
+              msg: "Data Not Found",
             });
           return resolve({
             status: 200,
@@ -155,7 +177,7 @@ const productsModel = {
     return new Promise((resolve, reject) => {
       const timestamp = Date.now() / 1000;
       const query =
-        "insert into products (product_name, price, image, category_id, description, created_at, updated_at) values ($1, $2, $3, $4, $5, to_timestamp($6), to_timestamp($7)) returning product_name";
+        "insert into products (product_name, price, image, category_id, description, created_at, updated_at) values ($1, $2, $3, $4, $5, to_timestamp($6), to_timestamp($7)) returning *";
       const { productname, price, category_id, description } = body;
       const imageUrl = `/images/${file.filename}`;
       db.query(
@@ -174,11 +196,14 @@ const productsModel = {
             console.log(error);
             return reject({
               status: 500,
-              error: { msg: "Internal Server Error" },
+              msg: "Internal Server Error",
             });
           }
-          const productName = queryResult.rows[0].product_name;
-          resolve({ status: 201, msg: `${productName} added to database` });
+          resolve({
+            status: 201,
+            msg: `${productname} added to database`,
+            data: { ...queryResult.rows[0] },
+          });
         }
       );
     });
@@ -187,15 +212,15 @@ const productsModel = {
     return new Promise((resolve, reject) => {
       const timestamp = Date.now() / 1000;
       let query = "update products set ";
+      let imageUrl = null;
       const input = [];
       if (file) {
+        imageUrl = `/image/${file.filename}`;
         if (Object.keys(body).length === 0) {
-          const imageUrl = `/image/${file.filename}`;
           query += `image = '${imageUrl}', updated_at = to_timestamp($1) where id = $2 returning product_name`;
           input.push(timestamp, id);
         }
         if (Object.keys(body).length > 0) {
-          const imageUrl = `/image/${file.filename}`;
           query += `image = '${imageUrl}', `;
         }
       }
@@ -216,30 +241,43 @@ const productsModel = {
           console.log(error);
           return reject({
             status: 500,
-            error: { msg: "Internal server error" },
+            msg: "Internal server error",
+          });
+        }
+        if (result.rows.length === 0)
+          return reject({ status: 404, msg: "Data not Found" });
+        if (file) {
+          return resolve({
+            status: 200,
+            msg: `${result.rows[0].product_name} updated`,
+            data: { id, image: imageUrl, ...body },
           });
         }
         return resolve({
           status: 200,
           msg: `${result.rows[0].product_name} updated`,
+          data: { id, ...body },
         });
       });
     });
   },
   dropProducts: (params) => {
     return new Promise((resolve, reject) => {
-      const query = "delete from products where id = $1 returning product_name";
+      const query = "delete from products where id = $1 returning *";
       db.query(query, [params.id], (error, response) => {
         if (error) {
           console.log(error);
           return reject({
             status: 500,
-            error: { msg: "Internal server error" },
+            msg: "Internal server error",
           });
         }
+        if (response.rows.length === 0)
+          return reject({ status: 404, msg: "Data not Found" });
         return resolve({
           status: 200,
           msg: `${response.rows[0].product_name} deleted`,
+          data: { ...response.rows[0] },
         });
       });
     });

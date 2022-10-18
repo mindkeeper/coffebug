@@ -1,5 +1,11 @@
 const express = require("express");
-const { get, create, update, drop } = require("../handler/products");
+const {
+  get,
+  create,
+  update,
+  drop,
+  getProductsbyId,
+} = require("../handler/products");
 const productsRouter = express.Router();
 const isLogin = require("../middleware/isLogin");
 const allowedRoles = require("../middleware/allowedRoles");
@@ -18,6 +24,7 @@ const allowed = {
   ],
   body: ["productname", "price", "category_id", "description"],
 };
+productsRouter.get("/:id", getProductsbyId);
 productsRouter.get("/", validate.query(...allowed.query), get);
 
 //post new data
