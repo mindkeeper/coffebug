@@ -24,7 +24,7 @@ usersRouter.patch(
   "/edit-profile",
   isLogin(),
   allowedRoles("User"),
-  uploads.single("image"),
+  uploads,
   validate.patchBody(...allowed),
   userHandler.update
 );

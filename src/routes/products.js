@@ -32,7 +32,7 @@ productsRouter.post(
   "/",
   isLogin(),
   allowedRoles("Admin"),
-  uploads.single("image"),
+  uploads,
   validate.chekUpload(),
   validate.body(...allowed.body),
   create
@@ -43,7 +43,7 @@ productsRouter.patch(
   "/:id",
   isLogin(),
   allowedRoles("Admin"),
-  uploads.single("image"),
+  uploads,
   // validate.patchBody(...allowed.body),
   update
 );
