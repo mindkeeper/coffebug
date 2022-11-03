@@ -36,8 +36,8 @@ const transactionsHandler = {
   update: async (req, res) => {
     try {
       const response = await transactionsModel.updateTransactions(
-        req.body,
-        req.params
+        req.body.status_id,
+        req.params.id
       );
       return resHelper.success(res, response.status, response);
     } catch (error) {

@@ -18,21 +18,27 @@ const isAllowed = [
 ];
 
 transactionsRouter.get(
+  "/history",
+  isLogin(),
+  allowedRoles("User"),
+  transactionsHandler.get
+);
+// transactionsRouter.get(
+//   "/history",
+//   isLogin(),
+//   allowedRoles("User"),
+//   transactionsHandler.get
+// );
+transactionsRouter.get(
   "/:id",
   isLogin(),
   allowedRoles("User", "Admin"),
   transactionsHandler.getTransactionById
 );
-transactionsRouter.get(
-  "/history",
-  isLogin(),
-  allowedRoles("User", "Admin"),
-  transactionsHandler.get
-);
 transactionsRouter.post(
   "/",
   isLogin(),
-  allowedRoles("Admin"),
+  allowedRoles("User"),
   validate.body(...isAllowed),
   transactionsHandler.create
 );
@@ -40,6 +46,7 @@ transactionsRouter.patch(
   "/:id",
   isLogin(),
   allowedRoles("Admin"),
+  validate.body("status_id"),
   transactionsHandler.update
 );
 transactionsRouter.delete(

@@ -29,7 +29,7 @@ const transactionsModel = {
         "select count(id) as count from transactions where user_id = $1";
 
       const query =
-        "select t.created_at, u.display_name, p.product_name, s.size , p.price,t.qty, pr.code, d.method_name, py.method_name, t.subtotal, t.total, st.status_name from transactions t join users_profile u on u.user_id = t.user_id join products p on p.id = t.product_id join sizes s on s.id = t.size_id join promos pr on pr.id = t.promo_id join deliveries d on d.id = t.delivery_id join payments py on py.id = t.payment_id join status st on st.id = t.status_id where t.user_id = $1 order by created_at desc limit $2 offset $3";
+        "select t.created_at, u.display_name, p.product_name, p.image, s.size , p.price,t.qty, pr.code, d.method_name, py.method_name, t.subtotal, t.total, st.status_name from transactions t join users_profile u on u.user_id = t.user_id join products p on p.id = t.product_id join sizes s on s.id = t.size_id join promos pr on pr.id = t.promo_id join deliveries d on d.id = t.delivery_id join payments py on py.id = t.payment_id join status st on st.id = t.status_id where t.user_id = $1 order by created_at desc limit $2 offset $3";
 
       db.query(countQuery, [id], (error, result) => {
         if (error) {
@@ -40,7 +40,7 @@ const transactionsModel = {
           return reject({ status: 404, msg: "Data not found" });
 
         const totalData = parseInt(result.rows[0].count);
-        const sqlLimit = !limit ? 3 : parseInt(limit);
+        const sqlLimit = !limit ? 8 : parseInt(limit);
         const sqlOffset =
           !page || page === "1" ? 0 : parseInt(page - 1) * limit;
         const currentPage = page ? parseInt(page) : 1;
@@ -131,35 +131,27 @@ const transactionsModel = {
       });
     });
   },
-  updateTransactions: (body, params) => {
+  updateTransactions: (statusId, id) => {
     return new Promise((resolve, reject) => {
-      const values = [];
-      let query = "update transactions set ";
-      Object.keys(body).forEach((key, index, array) => {
-        if (index === array.length - 1) {
-          query += `${key} = $${index + 1} where id  = $${
-            index + 2
-          } returning id`;
-          values.push(body[key], params.id);
-          return;
-        }
-        query += `${key} = $${index + 1}, `;
-        values.push(body[key]);
-      });
-
-      db.query(query, values, (error, result) => {
+      const query =
+        "update transactions set status_id = $1 where id =$2 returning *";
+      db.query(query, [statusId, id], (error, result) => {
         if (error) {
-          return reject({ status: 500, msg: "Internal Server Error" });
+          console.log(error);
+          return reject({
+            status: 500,
+            msg: "Internal Server Error",
+          });
         }
-        if (result.rowCount === 0)
+        if (result.rows.length === 0)
           return reject({
             status: 400,
-            msg: "transaction not found, update failed",
+            msg: "Transaction not found, update failed",
           });
         return resolve({
           status: 200,
           msg: `transaction with id ${result.rows[0].id} updated successfully`,
-          data: { id: params.id, ...body },
+          data: { id: result.rows[0].id, status_id: result.rows[0].status_id },
         });
       });
     });
