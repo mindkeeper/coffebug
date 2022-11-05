@@ -25,7 +25,7 @@ const multerOption = {
   limits: { fileSize: 1 * 1024 * 1024 },
 };
 
-const upload = multer(multerOption).single("image");
+const upload = multer(multerOption).array("image", 12);
 const multerHandler = (req, res, next) => {
   upload(req, res, (error) => {
     if (error instanceof multer.MulterError) {
