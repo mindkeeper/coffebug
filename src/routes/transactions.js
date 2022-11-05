@@ -52,7 +52,7 @@ transactionsRouter.patch(
 transactionsRouter.delete(
   "/:id",
   isLogin(),
-  allowedRoles("Admin"),
+  allowedRoles("User"),
   transactionsHandler.drop
 );
 //export
