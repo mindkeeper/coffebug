@@ -5,7 +5,7 @@ const productsModel = {
   getProductById: (id) => {
     return new Promise((resolve, reject) => {
       const query =
-        "select p.product_name, p.price, p.image, c.category_name, p.description, count(t.qty) as sold from products p join categories c on c.id = p.category_id left join transactions t on t.product_id = p.id where p.id = $1 group by product_name, price , image, c.category_name , description";
+        "select p.id, p.product_name, p.price, p.image, c.category_name, p.description, count(t.qty) as sold from products p join categories c on c.id = p.category_id left join transactions t on t.product_id = p.id where p.id = $1 group by p.id, product_name, price , image, c.category_name , description";
       db.query(query, [id], (error, result) => {
         if (error) {
           console.log(error);
@@ -26,13 +26,21 @@ const productsModel = {
       const { search, categories, minPrice, maxPrice, sort, limit, page } =
         queryParams;
       let query =
-        "select p.product_name, p.price, p.image, c.category_name, p.description from products p join categories c on c.id = p.category_id left join transactions t on t.product_id = p.id ";
+        "select p.id, p.product_name, p.price, p.image, c.category_name, p.description from products p join categories c on c.id = p.category_id ";
       let countQuery =
         "select count(p.id) as count from products p join categories c on c.id = p.category_id  ";
 
       let checkWhere = true;
-      let link = "/api/products?";
+      let link = "";
 
+      if (sort) {
+        if (sort.toLowerCase() === "popular") {
+          query =
+            "select p.id, p.product_name, p.price, p.image, c.category_name, p.description from products p join categories c on c.id = p.category_id left join transactions t on t.product_id = p.id ";
+          countQuery =
+            "select count(p.id) as count from products p join categories c on c.id = p.category_id  left join transactions t on t.product_id = p.id ";
+        }
+      }
       if (search) {
         link += `search${search}&`;
         query += `${
@@ -84,6 +92,7 @@ const productsModel = {
       }
       if (sort) {
         query += "group by p.id, c.category_name ";
+        countQuery += "group by p.id ";
         if (sort.toLowerCase() === "popular") {
           query += "order by count(t.qty) desc ";
           link += "sort=popular&";
@@ -106,9 +115,9 @@ const productsModel = {
         }
       }
       query += "limit $1 offset $2";
-      console.log(query);
+      console.log(countQuery);
       console.log(link);
-      const sqlLimit = limit ? limit : 10;
+      const sqlLimit = limit ? limit : 8;
       const sqlOffset =
         !page || page === "1" ? 0 : (parseInt(page) - 1) * parseInt(sqlLimit);
 
@@ -122,8 +131,11 @@ const productsModel = {
             msg: "internal Server Error",
           });
         }
-
-        const totalData = result.rows[0].count;
+        // return resolve({ status: 200, msg: "success", data: result.rows });
+        const totalData =
+          sort && sort.toLowerCase() === "popular"
+            ? result.rows.length
+            : result.rows[0].count;
 
         const currentPage = page ? parseInt(page) : 1;
         const totalPage =
@@ -179,7 +191,7 @@ const productsModel = {
       const query =
         "insert into products (product_name, price, image, category_id, description, created_at, updated_at) values ($1, $2, $3, $4, $5, to_timestamp($6), to_timestamp($7)) returning *";
       const { productname, price, category_id, description } = body;
-      const imageUrl = `/images/${file.filename}`;
+      const imageUrl = `${file.filename}`;
       db.query(
         query,
         [
@@ -215,7 +227,7 @@ const productsModel = {
       let imageUrl = null;
       const input = [];
       if (file) {
-        imageUrl = `/image/${file.filename}`;
+        imageUrl = `${file.filename}`;
         if (Object.keys(body).length === 0) {
           query += `image = '${imageUrl}', updated_at = to_timestamp($1) where id = $2 returning product_name`;
           input.push(timestamp, id);
