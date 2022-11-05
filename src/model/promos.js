@@ -1,6 +1,25 @@
 const db = require("../config/postgre");
 
 const promosModel = {
+  getPromosById: (id) => {
+    return new Promise((resolve, reject) => {
+      const query = "select * from promos where id = $1";
+      db.query(query, [id], (error, result) => {
+        if (error) {
+          console.log(error);
+          return reject({ status: 500, msg: "Internal Server Error" });
+        }
+        if (result.rows.length === 0)
+          return reject({ status: 404, msg: "Promo Not Found" });
+
+        return resolve({
+          status: 200,
+          msg: "Detail Promo",
+          data: { ...result.rows[0] },
+        });
+      });
+    });
+  },
   getPromos: (params) => {
     return new Promise((resolve, reject) => {
       let link = "/api/promos?";
@@ -64,11 +83,13 @@ const promosModel = {
       });
     });
   },
-  createPromo: (body) => {
+  createPromo: (body, file) => {
     return new Promise((resolve, reject) => {
       const query =
-        "insert into promos(code, discount, description, duration, created_at, updated_at) values($1, $2, $3, $4, to_timestamp($5), to_timestamp($6)) returning *";
-      const { code, discount, description, duration } = body;
+        "insert into promos(code, discount, description, duration, created_at, updated_at, image, promo_name, minPrice) values($1, $2, $3, $4, to_timestamp($5), to_timestamp($6), $7, $8, $9) returning *";
+      const { code, discount, description, duration, promo_name, min_price } =
+        body;
+      const imageUrl = `${file.filename}`;
       const timestamp = Date.now() / 1000;
       db.query(
         query,
@@ -79,6 +100,9 @@ const promosModel = {
           duration,
           timestamp,
           timestamp,
+          imageUrl,
+          promo_name,
+          min_price,
         ],
         (error, result) => {
           if (error) {
@@ -98,11 +122,23 @@ const promosModel = {
       );
     });
   },
-  updatePromo: (body, params) => {
+  updatePromo: (body, params, file) => {
     return new Promise((resolve, reject) => {
       const values = [];
       const timestamp = Date.now() / 1000;
+      let imageUrl = null;
       let query = "update promos set ";
+      if (file) {
+        imageUrl = `${file.filename}`;
+        if (Object.keys(body).length === 0) {
+          query += `image = '${imageUrl}', updated_at = to_timestamp($1) where id = $2 returning code`;
+          values.push(timestamp, params.id);
+        }
+        if (Object.keys(body).length > 0) {
+          query += `image = '${imageUrl}', `;
+        }
+      }
+
       Object.keys(body).forEach((key, index, array) => {
         if (index === array.length - 1) {
           query += `${key} = $${index + 1}, updated_at = to_timestamp($${

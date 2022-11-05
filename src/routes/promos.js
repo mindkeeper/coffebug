@@ -4,11 +4,25 @@ const promosHandler = require("../handler/promos");
 const isLogin = require("../middleware/isLogin");
 const allowedRoles = require("../middleware/allowedRoles");
 const validate = require("../middleware/validate");
-
+const uploads = require("../middleware/imageUpload");
 const allowed = {
   query: ["code", "page", "limit"],
-  body: ["code", "discount", "description", "duration"],
+  body: [
+    "code",
+    "discount",
+    "description",
+    "duration",
+    "product_name",
+    "min_price",
+  ],
 };
+
+promosRouter.get(
+  "/:id",
+  isLogin(),
+  allowedRoles("Admin"),
+  promosHandler.getPromosById
+);
 promosRouter.get(
   "/",
   isLogin(),
@@ -21,6 +35,8 @@ promosRouter.post(
   "/",
   isLogin(),
   allowedRoles("Admin"),
+  uploads,
+  validate.chekUpload(),
   validate.body(...allowed.body),
   promosHandler.create
 );
@@ -28,6 +44,7 @@ promosRouter.patch(
   "/:id",
   isLogin(),
   allowedRoles("Admin"),
+  uploads,
   validate.patchBody(...allowed.body),
   promosHandler.update
 );
