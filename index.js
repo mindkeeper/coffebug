@@ -5,7 +5,9 @@ const { PORT } = process.env;
 const db = require("./src/config/postgre");
 const mainRouter = require("./src/routes/main");
 const server = express();
+const cors = require("cors");
 
+server.use(cors());
 server.use(express.json());
 server.use(express.static("./public/images"));
 //parser encoded
