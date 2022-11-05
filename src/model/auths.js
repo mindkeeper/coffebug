@@ -7,7 +7,7 @@ const authsModel = {
     return new Promise((resolve, reject) => {
       const { email, password } = body;
       const getPwdQuery =
-        "select u.id, u.email, u.password, r.role from users u left join roles r on u.role_id = r.id where email = $1";
+        "select u.id, u.email, u.password, up.image, r.role from users u left join roles r on u.role_id = r.id left join users_profile up on u.id = up.user_id where email = $1";
       const invalidCridentials = "Email/Password is Wrong!";
       const statusCode = 401;
 
@@ -43,6 +43,7 @@ const authsModel = {
             id: response.rows[0].id,
             email: response.rows[0].email,
             role: response.rows[0].role,
+            image: response.rows[0].image,
           };
           jwt.sign(
             payload,
