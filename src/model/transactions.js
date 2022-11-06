@@ -21,6 +21,65 @@ const transactionsModel = {
       });
     });
   },
+  getPendingTransactions: (queryParams) => {
+    return new Promise((resolve, reject) => {
+      const { page, limit } = queryParams;
+      let link = "http://localhost:8080/api/transactions/pending?";
+      const query =
+        "select t.created_at, u.display_name, p.product_name, p.image, s.size , p.price,t.qty, pr.code, d.method_name, py.method_name, t.subtotal, t.total, st.status_name from transactions t join users_profile u on u.user_id = t.user_id join products p on p.id = t.product_id join sizes s on s.id = t.size_id join promos pr on pr.id = t.promo_id join deliveries d on d.id = t.delivery_id join payments py on py.id = t.payment_id join status st on st.id = t.status_id where st.id = 1 order by created_at desc limit $1 offset $2";
+      const countQuery =
+        "select count(id) as count from transactions where status_id = 1";
+      db.query(countQuery, (error, result) => {
+        if (error) {
+          console.log(error);
+          return reject({ status: 500, msg: "Internal Server Error" });
+        }
+        if (result.rows.length === 0)
+          return reject({ status: 404, msg: "Data not found" });
+        const totalData = parseInt(result.rows[0].count);
+        const sqlLimit = !limit ? 3 : parseInt(limit);
+        const sqlOffset =
+          !page || page === "1" ? 0 : parseInt(page - 1) * limit;
+        const currentPage = page ? parseInt(page) : 1;
+        const totalPage =
+          parseInt(sqlLimit) > totalData
+            ? 1
+            : Math.ceil(totalData / parseInt(sqlLimit));
+
+        const prev =
+          currentPage === 1
+            ? null
+            : link + `page=${currentPage - 1}&limit=${parseInt(sqlLimit)}`;
+
+        const next =
+          currentPage === totalPage
+            ? null
+            : link + `page=${currentPage + 1}&limit=${parseInt(sqlLimit)}`;
+        const meta = {
+          page: currentPage,
+          totalPage,
+          limit: parseInt(sqlLimit),
+          totalData,
+          prev,
+          next,
+        };
+        db.query(query, [sqlLimit, sqlOffset], (error, result) => {
+          if (error) {
+            console.log(error);
+            return reject({ status: 404, msg: "Internal Server Error" });
+          }
+          if (result.rows.length === 0)
+            return reject({ status: 404, msg: "Data not found" });
+          return resolve({
+            status: 200,
+            msg: "Pending Transactions",
+            data: result.rows,
+            meta,
+          });
+        });
+      });
+    });
+  },
   getAllTransactions: (id, queryParams) => {
     return new Promise((resolve, reject) => {
       const { page, limit } = queryParams;
@@ -50,7 +109,7 @@ const transactionsModel = {
             : Math.ceil(totalData / parseInt(sqlLimit));
 
         const prev =
-          currentPage === 0
+          currentPage === 1
             ? null
             : link + `page=${currentPage - 1}&limit=${parseInt(sqlLimit)}`;
 
@@ -66,7 +125,6 @@ const transactionsModel = {
           prev,
           next,
         };
-
         db.query(query, [id, sqlLimit, sqlOffset], (error, result) => {
           if (error) {
             console.log(error);
@@ -76,7 +134,7 @@ const transactionsModel = {
             return reject({ status: 404, msg: "Data not found" });
           return resolve({
             status: 200,
-            msg: "List products",
+            msg: "Transactions History",
             data: result.rows,
             meta,
           });

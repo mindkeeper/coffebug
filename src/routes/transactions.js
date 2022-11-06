@@ -23,14 +23,8 @@ transactionsRouter.get(
   allowedRoles("User"),
   transactionsHandler.get
 );
-// transactionsRouter.get(
-//   "/history",
-//   isLogin(),
-//   allowedRoles("User"),
-//   transactionsHandler.get
-// );
 transactionsRouter.get(
-  "/:id",
+  "/detail/:id",
   isLogin(),
   allowedRoles("User", "Admin"),
   transactionsHandler.getTransactionById
@@ -55,5 +49,6 @@ transactionsRouter.delete(
   allowedRoles("User"),
   transactionsHandler.drop
 );
+transactionsRouter.get("/pending", transactionsHandler.getTransactionsPending);
 //export
 module.exports = transactionsRouter;

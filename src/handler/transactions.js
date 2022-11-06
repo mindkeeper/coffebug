@@ -12,6 +12,16 @@ const transactionsHandler = {
       resHelper.error(res, error.status, error);
     }
   },
+  getTransactionsPending: async (req, res) => {
+    try {
+      const response = await transactionsModel.getPendingTransactions(
+        req.query
+      );
+      resHelper.success(res, response.status, response);
+    } catch (error) {
+      resHelper.error(res, error.status, error);
+    }
+  },
   get: async (req, res) => {
     try {
       const response = await transactionsModel.getAllTransactions(
