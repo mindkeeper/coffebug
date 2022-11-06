@@ -14,7 +14,7 @@ mainRouter.use(`${prefix}/users`, usersRouter);
 mainRouter.use(`${prefix}/auths`, authsRouter);
 
 //
-mainRouter.get(`${prefix}/`, (req, res) => {
+mainRouter.get(`/`, (req, res) => {
   res.json({ msg: "Welcome" });
 });
 
