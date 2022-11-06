@@ -191,7 +191,7 @@ const productsModel = {
       const query =
         "insert into products (product_name, price, image, category_id, description, created_at, updated_at) values ($1, $2, $3, $4, $5, to_timestamp($6), to_timestamp($7)) returning *";
       const { productname, price, category_id, description } = body;
-      const imageUrl = `${file.filename}`;
+      const imageUrl = `${file.url}`;
       db.query(
         query,
         [
@@ -227,7 +227,7 @@ const productsModel = {
       let imageUrl = null;
       const input = [];
       if (file) {
-        imageUrl = `${file.filename}`;
+        imageUrl = `${file.url}`;
         if (Object.keys(body).length === 0) {
           query += `image = '${imageUrl}', updated_at = to_timestamp($1) where id = $2 returning product_name`;
           input.push(timestamp, id);

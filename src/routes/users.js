@@ -17,6 +17,7 @@ const allowed = [
   "image",
   "phone",
 ];
+const cloudinaryUpload = require("../middleware/cloudinary");
 //get all users
 usersRouter.get("/", isLogin(), allowedRoles("User"), userHandler.get);
 usersRouter.post("/register", userHandler.create);
@@ -25,6 +26,7 @@ usersRouter.patch(
   isLogin(),
   allowedRoles("User"),
   uploads,
+  cloudinaryUpload,
   validate.patchBody(...allowed),
   userHandler.update
 );

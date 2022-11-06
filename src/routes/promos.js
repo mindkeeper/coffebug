@@ -5,6 +5,8 @@ const isLogin = require("../middleware/isLogin");
 const allowedRoles = require("../middleware/allowedRoles");
 const validate = require("../middleware/validate");
 const uploads = require("../middleware/imageUpload");
+const cloudinaryUpload = require("../middleware/cloudinary");
+
 const allowed = {
   query: ["code", "page", "limit"],
   body: [
@@ -36,6 +38,7 @@ promosRouter.post(
   isLogin(),
   allowedRoles("Admin"),
   uploads,
+  cloudinaryUpload,
   validate.chekUpload(),
   validate.body(...allowed.body),
   promosHandler.create
@@ -45,6 +48,7 @@ promosRouter.patch(
   isLogin(),
   allowedRoles("Admin"),
   uploads,
+  cloudinaryUpload,
   validate.patchBody(...allowed.body),
   promosHandler.update
 );

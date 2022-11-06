@@ -95,7 +95,7 @@ const userModels = {
       let query = "update users_profile set ";
       let imageUrl = "";
       if (file) {
-        imageUrl = `${file.filename} `;
+        imageUrl = `${file.url} `;
         if (Object.keys(body).length > 0) {
           query += `image = '${imageUrl}', `;
         }

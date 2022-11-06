@@ -89,7 +89,7 @@ const promosModel = {
         "insert into promos(code, discount, description, duration, created_at, updated_at, image, promo_name, minPrice) values($1, $2, $3, $4, to_timestamp($5), to_timestamp($6), $7, $8, $9) returning *";
       const { code, discount, description, duration, promo_name, min_price } =
         body;
-      const imageUrl = `${file.filename}`;
+      const imageUrl = `${file.url}`;
       const timestamp = Date.now() / 1000;
       db.query(
         query,
@@ -129,7 +129,7 @@ const promosModel = {
       let imageUrl = null;
       let query = "update promos set ";
       if (file) {
-        imageUrl = `${file.filename}`;
+        imageUrl = `${file.url}`;
         if (Object.keys(body).length === 0) {
           query += `image = '${imageUrl}', updated_at = to_timestamp($1) where id = $2 returning code`;
           values.push(timestamp, params.id);
