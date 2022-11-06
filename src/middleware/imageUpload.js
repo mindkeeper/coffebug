@@ -1,25 +1,24 @@
 const multer = require("multer");
 const path = require("path");
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, "./public/images");
-  },
-  filename: (req, file, cb) => {
-    const fileName = `${file.fieldname}-${Date.now()}-${Math.round(
-      Math.random() * 1e9
-    )}${path.extname(file.originalname)}`;
-    cb(null, fileName);
-  },
-});
+// const storage = multer.diskStorage({
+//   destination: (req, file, cb) => {
+//     cb(null, "./public/images");
+//   },
+//   filename: (req, file, cb) => {
+//     const fileName = `${file.fieldname}-${Date.now()}-${Math.round(
+//       Math.random() * 1e9
+//     )}${path.extname(file.originalname)}`;
+//     cb(null, fileName);
+//   },
+// });
+
+const memory = multer.memoryStorage();
 const multerOption = {
-  storage,
+  memory,
   fileFilter: (req, file, cb) => {
-    if (
-      file.mimetype !== "image/png" &&
-      file.mimetype !== "image/jpg" &&
-      file.mimetype !== "image/jpeg"
-    )
-      return cb(new Error("Invalid data type"));
+    const ext = path.extname(file.originalname);
+    const allowedExt = /png|jpg|jpeg/;
+    if (!allowedExt.test(ext)) return cb(new Error("Invalid data type"), false);
     cb(null, true);
   },
   limits: { fileSize: 1 * 1024 * 1024 },
