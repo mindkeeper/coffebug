@@ -86,7 +86,7 @@ const promosModel = {
   createPromo: (body, file) => {
     return new Promise((resolve, reject) => {
       const query =
-        "insert into promos(code, discount, description, duration, created_at, updated_at, image, promo_name, minPrice) values($1, $2, $3, $4, to_timestamp($5), to_timestamp($6), $7, $8, $9) returning *";
+        "insert into promos(code, discount, description, duration, created_at, updated_at, image, promo_name, min_price) values($1, $2, $3, $4, to_timestamp($5), to_timestamp($6), $7, $8, $9) returning *";
       const { code, discount, description, duration, promo_name, min_price } =
         body;
       const imageUrl = `${file.url}`;

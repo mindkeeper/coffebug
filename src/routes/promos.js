@@ -14,7 +14,7 @@ const allowed = {
     "discount",
     "description",
     "duration",
-    "product_name",
+    "promo_name",
     "min_price",
   ],
 };
