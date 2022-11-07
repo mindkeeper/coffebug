@@ -9,7 +9,7 @@ const uploader = async (req, res, next) => {
   const ext = path.extname(file.originalname).toString();
   const dataUri = parser.format(ext, buffer);
   const cloudinaryOpt = {
-    public_id: `user_${userPayload.id}`,
+    public_id: `${Math.floor(Math.random() * 10e9)}`,
     folder: "Coffebug",
   };
   try {

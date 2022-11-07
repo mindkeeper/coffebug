@@ -48,7 +48,7 @@ const authsModel = {
           jwt.sign(
             payload,
             SECRET_KEY,
-            { expiresIn: "10m" },
+            { expiresIn: "10h" },
             (error, token) => {
               if (error) {
                 console.log(error);
