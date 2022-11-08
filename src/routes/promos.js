@@ -28,7 +28,7 @@ promosRouter.get(
 promosRouter.get(
   "/",
   isLogin(),
-  allowedRoles("User", "Admin"),
+  // allowedRoles("User", "Admin"),
   validate.query(...allowed.query),
   promosHandler.get
 );

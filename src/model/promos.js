@@ -27,8 +27,8 @@ const promosModel = {
       const countQuery =
         "select count(id) as count from promos where lower(code) like lower($1)";
       const query =
-        "select * from promos where lower(code) like lower($1) limit $2 offset $3";
-      const sqlLimit = !limit ? 5 : parseInt(limit);
+        "select * from promos where lower(code) like lower($1) order by created_at desc limit $2 offset $3 ";
+      const sqlLimit = !limit ? 4 : parseInt(limit);
       const sqlOffset = !page || page === "1" ? 0 : parseInt(page - 1) * limit;
       let promoCode = "%%";
       if (code) {
@@ -48,7 +48,7 @@ const promosModel = {
         const totalPage =
           sqlLimit > totalData ? 1 : Math.ceil(totalData / limit);
         const prev =
-          currentPage === 0
+          currentPage === 1
             ? null
             : link + `page=${currentPage - 1}&limit=${sqlLimit}`;
         const next =
