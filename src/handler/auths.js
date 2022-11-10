@@ -19,5 +19,13 @@ const authsHandler = {
       return resHelper.error(res, error.status, error.error);
     }
   },
+  resetPassword: async (req, res) => {
+    try {
+      const response = await authsModel.resetPassword(req.body);
+      return resHelper.success(res, response.status, response);
+    } catch (error) {
+      return resHelper.error(res, error.status, error.error);
+    }
+  },
 };
 module.exports = authsHandler;
