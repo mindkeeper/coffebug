@@ -1,6 +1,9 @@
 const db = require("../config/postgre");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+const jwtr = require("jwt-redis").default;
+const client = require("../config/redis");
+
 const { SECRET_KEY } = process.env;
 const authsModel = {
   login: (body) => {
@@ -81,6 +84,64 @@ const authsModel = {
         }
         return resolve({ status: 200, msg: "Logout Successful" });
       });
+    });
+  },
+
+  resetPassword: (body) => {
+    return new Promise((resolve, reject) => {
+      const { email, code, new_password } = body;
+      if (email && !code && !new_password) {
+        const query = "select email from users where email = $1";
+        db.query(query, [email], (error, result) => {
+          if (error) {
+            console.log("1", error);
+            return reject({
+              status: 500,
+              error: { msg: "Internal Server Error" },
+            });
+          }
+          if (result.rows.length === 0)
+            return reject({
+              status: 400,
+              error: { msg: "Your email doesnt registered on database" },
+            });
+          const otp = Math.floor(Math.random() * 1e6).toString();
+          client
+            .get(email)
+            .then((result) => {
+              if (result)
+                return reject({
+                  status: 403,
+                  error: { msg: "OTP already sent" },
+                });
+
+              client
+                .set(email, otp, { EX: 120, NX: true })
+                .then(() => {
+                  return resolve({
+                    status: 200,
+                    data: {
+                      otp,
+                    },
+                  });
+                })
+                .catch((err) => {
+                  console.log(err.message);
+                  return reject({
+                    status: 500,
+                    error: { msg: "Internal Server Error" },
+                  });
+                });
+            })
+            .catch((err) => {
+              console.log(err.message);
+              return reject({
+                status: 500,
+                error: { msg: "Internal Server Error" },
+              });
+            });
+        });
+      }
     });
   },
 };
