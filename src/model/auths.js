@@ -103,17 +103,23 @@ const authsModel = {
           if (result.rows.length === 0)
             return reject({
               status: 400,
-              error: { msg: "Your email doesnt registered on database" },
+              error: { msg: "Your email isn't registered" },
             });
           const otp = Math.floor(Math.random() * 1e6).toString();
           client
             .get(email)
             .then((result) => {
               if (result)
-                return reject({
-                  status: 403,
-                  error: { msg: "OTP already sent" },
-                });
+                client
+                  .del(email)
+                  .then()
+                  .catch((err) => {
+                    console.log(err.message);
+                    return reject({
+                      status: 500,
+                      error: { msg: "Internal Server Error" },
+                    });
+                  });
 
               client
                 .set(email, otp, { EX: 120, NX: true })
