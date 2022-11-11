@@ -94,7 +94,7 @@ const authsModel = {
         const query = "select email from users where email = $1";
         db.query(query, [email], (error, result) => {
           if (error) {
-            console.log("1", error);
+            console.log(error);
             return reject({
               status: 500,
               error: { msg: "Internal Server Error" },
@@ -147,6 +147,66 @@ const authsModel = {
               });
             });
         });
+      }
+      if (email && code && new_password) {
+        const timeStamp = Date.now() / 1000;
+        const resetPwdQuery =
+          "update users set password = $1, updated_at = to_timestamp($2) where email = $3";
+
+        client
+          .get(email)
+          .then((userOtp) => {
+            if (code !== userOtp)
+              return reject({
+                status: 401,
+                error: { msg: "Wrong otp" },
+              });
+            bcrypt.hash(new_password, 10, (error, hashedPwd) => {
+              if (error) {
+                console.log(error);
+                return reject({
+                  status: 500,
+                  error: { msg: "Internal Server Error" },
+                });
+              }
+              db.query(
+                resetPwdQuery,
+                [hashedPwd, timeStamp, email],
+                (error, result) => {
+                  if (error) {
+                    console.log(error);
+                    return reject({
+                      status: 500,
+                      error: { msg: "Internal Server Error" },
+                    });
+                  }
+                  client
+                    .del(email)
+                    .then()
+                    .catch((err) => {
+                      if (err) {
+                        console.log(err);
+                        return reject({
+                          status: 500,
+                          error: { msg: "Internal Server Error" },
+                        });
+                      }
+                    });
+                  return resolve({
+                    status: 200,
+                    msg: "Password changed, please login!",
+                  });
+                }
+              );
+            });
+          })
+          .catch((err) => {
+            console.log(err);
+            return reject({
+              status: 500,
+              error: { msg: "Internal Server Error" },
+            });
+          });
       }
     });
   },
