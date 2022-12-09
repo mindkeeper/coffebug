@@ -14,7 +14,7 @@ const isLogin = () => {
     db.query(query, [token], (error, result) => {
       if (error) {
         console.log(error);
-        return resHelper.error(res, 403, {
+        return resHelper.error(res, 500, {
           status: 500,
           msg: "Internal Server Error",
         });

@@ -1,16 +1,97 @@
 const db = require("../config/postgre");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
-const jwtr = require("jwt-redis").default;
-const client = require("../config/redis");
+const getTimeStamp = require("../helper/getTimeStamp");
+const createOtp = require("../helper/createOtp");
 
 const { SECRET_KEY } = process.env;
 const authsModel = {
+  register: (req) =>
+    new Promise((resolve, reject) => {
+      const { email, password, phone } = req.body;
+      const sqlCheckAvailibility =
+        "select u.email, up.phone from users u join users_profile up on up.user_id = u.id where u.email=$1 or up.phone=$2";
+      db.query(sqlCheckAvailibility, [email, phone], (error, result) => {
+        if (error) {
+          console.log(error);
+          return reject({ status: 500, msg: "Internal Server Error" });
+        }
+        if (result.rows.length > 0) {
+          if (result.rows.length > 1) {
+            return reject({
+              status: 403,
+              msg: "Email and Phone Number Already Exist!",
+            });
+          }
+          if (result.rows[0].email == email)
+            return reject({
+              status: 403,
+              msg: "Email Already Exist!",
+            });
+          if (result.rows[0].phone == phone)
+            return reject({
+              status: 403,
+              msg: "Phone Number Already Exist!",
+            });
+        }
+        bcrypt.hash(password, 10, (error, hashedPwd) => {
+          if (error) {
+            console.log(error);
+            return reject({ status: 500, msg: "Internal Server Error" });
+          }
+          const sqlCreateUser =
+            "INSERT INTO USERS (email, password, register_otp, role_id) VALUES($1, $2, $3, $4) returning id, register_otp";
+          const values = [email, hashedPwd, createOtp(), 1];
+          db.query(sqlCreateUser, values, (error, res) => {
+            if (error) {
+              console.log(error);
+              return reject({ status: 500, msg: "Internal Server Error" });
+            }
+            const id = res.rows[0].id;
+            const otp = res.rows[0].register_otp;
+            const sqlCreateProfile =
+              "INSERT INTO users_profile (user_id, phone) values($1, $2)";
+            db.query(sqlCreateProfile, [id, phone], (error) => {
+              if (error) {
+                console.log(error);
+                return reject({ status: 500, msg: "Internal Server Error" });
+              }
+              return resolve({ otp });
+            });
+          });
+        });
+      });
+    }),
+  verifyRegister: (req) =>
+    new Promise((resolve, reject) => {
+      const otp = req.params.otp;
+      const sqlCheckOtp =
+        "SELECT id, register_otp from users where register_otp = $1";
+      db.query(sqlCheckOtp, [otp], (error, result) => {
+        if (error) {
+          console.log(error);
+          return reject({ status: 500, msg: "Internal Server Error" });
+        }
+        if (result.rows.length === 0)
+          return reject({ status: 401, msg: "Wrong OTP" });
+        const id = result.rows[0].id;
+        const sqlVerify =
+          "update users set register_otp = $1, updated_at = to_timestamp($2) where id = $3 and register_otp = $4";
+        db.query(sqlVerify, [null, getTimeStamp(), id, otp], (error, _) => {
+          if (error) {
+            console.log(error);
+            return reject({ status: 500, msg: "Internal Server Error" });
+          }
+          return resolve({ status: 200, msg: "Email Verified, Please Login" });
+        });
+      });
+    }),
+
   login: (body) => {
     return new Promise((resolve, reject) => {
       const { email, password } = body;
       const getPwdQuery =
-        "select u.id, u.email, u.password, up.image, r.role from users u left join roles r on u.role_id = r.id left join users_profile up on u.id = up.user_id where email = $1";
+        "select u.id, u.email, u.password, up.image, register_otp as otp, r.role from users u left join roles r on u.role_id = r.id left join users_profile up on u.id = up.user_id where email = $1";
       const invalidCridentials = "Email/Password is Wrong!";
       const statusCode = 401;
 
@@ -27,6 +108,11 @@ const authsModel = {
           return reject({
             status: statusCode,
             error: { msg: invalidCridentials },
+          });
+        if (response.rows[0].otp)
+          return reject({
+            status: 401,
+            error: { msg: "Please Verify Your Email" },
           });
         const hashedPwd = response.rows[0].password;
         bcrypt.compare(password, hashedPwd, (error, isSame) => {
@@ -86,130 +172,68 @@ const authsModel = {
       });
     });
   },
-
-  resetPassword: (body) => {
-    return new Promise((resolve, reject) => {
-      const { email, code, new_password } = body;
-      if (email && !code && !new_password) {
-        const query = "select email from users where email = $1";
-        db.query(query, [email], (error, result) => {
+  forgotPassword: (req) =>
+    new Promise((resolve, reject) => {
+      const { email } = req.body;
+      const sqlCheckUser = "Select id, email from users where email = $1";
+      db.query(sqlCheckUser, [email], (error, result) => {
+        if (error) {
+          console.log(error);
+          return reject({ status: 500, msg: "Internal Server Error" });
+        }
+        if (result.rows.length === 0)
+          return reject({ status: 404, msg: "Your Email Isn't Registered" });
+        const otp = createOtp();
+        const id = result.rows[0].id;
+        const sqlCreateOtp =
+          "update users set password_otp = $1, updated_at = to_timestamp($2) where id = $3 returning password_otp";
+        db.query(sqlCreateOtp, [otp, getTimeStamp(), id], (error) => {
           if (error) {
             console.log(error);
-            return reject({
-              status: 500,
-              error: { msg: "Internal Server Error" },
-            });
+            return reject({ status: 500, msg: "Internal Server Error" });
           }
-          if (result.rows.length === 0)
-            return reject({
-              status: 400,
-              error: { msg: "Your email isn't registered" },
-            });
-          const otp = Math.floor(Math.random() * 1e6).toString();
-          client
-            .get(email)
-            .then((result) => {
-              if (result)
-                client
-                  .del(email)
-                  .then()
-                  .catch((err) => {
-                    console.log(err.message);
-                    return reject({
-                      status: 500,
-                      error: { msg: "Internal Server Error" },
-                    });
-                  });
-
-              client
-                .set(email, otp, { EX: 120, NX: true })
-                .then(() => {
-                  return resolve({
-                    status: 200,
-                    data: {
-                      otp,
-                    },
-                  });
-                })
-                .catch((err) => {
-                  console.log(err.message);
-                  return reject({
-                    status: 500,
-                    error: { msg: "Internal Server Error" },
-                  });
-                });
-            })
-            .catch((err) => {
-              console.log(err.message);
-              return reject({
-                status: 500,
-                error: { msg: "Internal Server Error" },
-              });
-            });
+          return resolve({ otp, email });
         });
-      }
-      if (email && code && new_password) {
-        const timeStamp = Date.now() / 1000;
-        const resetPwdQuery =
-          "update users set password = $1, updated_at = to_timestamp($2) where email = $3";
-
-        client
-          .get(email)
-          .then((userOtp) => {
-            if (code !== userOtp)
-              return reject({
-                status: 401,
-                error: { msg: "Wrong otp" },
-              });
-            bcrypt.hash(new_password, 10, (error, hashedPwd) => {
+      });
+    }),
+  resetPassword: (req) =>
+    new Promise((resolve, reject) => {
+      const { otp, newPassword, confirmPassword } = req.body;
+      if (newPassword !== confirmPassword)
+        return reject({ status: 400, msg: "confirm password isn't matched" });
+      const sqlCheckUser = "select id from users where password_otp = $1";
+      db.query(sqlCheckUser, [otp], (error, result) => {
+        if (error) {
+          console.log(error);
+          return reject({ status: 500, msg: "Internal Server Error" });
+        }
+        if (result.rows.length === 0)
+          return reject({ status: 401, msg: "Wrong OtP" });
+        const id = result.rows[0].id;
+        bcrypt.hash(newPassword, 10, (error, hashedPwd) => {
+          if (error) {
+            console.log(error);
+            return reject({ status: 500, msg: "Internal Server Error" });
+          }
+          const sqlUpdatePwd =
+            "update users set password = $1, password_otp = $2, updated_at = to_timestamp($3) where id = $4";
+          db.query(
+            sqlUpdatePwd,
+            [hashedPwd, null, getTimeStamp(), id],
+            (error, _) => {
               if (error) {
                 console.log(error);
-                return reject({
-                  status: 500,
-                  error: { msg: "Internal Server Error" },
-                });
+                return reject({ status: 500, msg: "Internal Server Error" });
               }
-              db.query(
-                resetPwdQuery,
-                [hashedPwd, timeStamp, email],
-                (error, result) => {
-                  if (error) {
-                    console.log(error);
-                    return reject({
-                      status: 500,
-                      error: { msg: "Internal Server Error" },
-                    });
-                  }
-                  client
-                    .del(email)
-                    .then()
-                    .catch((err) => {
-                      if (err) {
-                        console.log(err);
-                        return reject({
-                          status: 500,
-                          error: { msg: "Internal Server Error" },
-                        });
-                      }
-                    });
-                  return resolve({
-                    status: 200,
-                    msg: "Password changed, please login!",
-                  });
-                }
-              );
-            });
-          })
-          .catch((err) => {
-            console.log(err);
-            return reject({
-              status: 500,
-              error: { msg: "Internal Server Error" },
-            });
-          });
-      }
-    });
-  },
+              return resolve({
+                status: 200,
+                msg: "Update Password Successfully",
+              });
+            }
+          );
+        });
+      });
+    }),
 };
 
 module.exports = authsModel;

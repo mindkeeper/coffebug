@@ -21,7 +21,7 @@ const uploader = async (req, res, next) => {
     next();
   } catch (error) {
     console.log(error);
-    res.status(415).json({ status: 415, msg: error.message });
+    return res.status(415).json({ status: 415, msg: error.message });
   }
 };
 

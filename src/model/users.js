@@ -22,7 +22,7 @@ const userModels = {
         userInsert:
           "insert into users(email, password, created_at, updated_at, role_id) values($1, $2, to_timestamp($3), to_timestamp($4), $5) returning id",
         profileInsert:
-          "insert into users_profile(user_id, phone, created_at, updated_at) values($1, $2, to_timestamp($3), to_timestamp($4))",
+          "insert into users_profile(user_id, phone) values($1, $2, to_timestamp($3), to_timestamp($4))",
       };
       const { checkEmailandPhone, userInsert, profileInsert } = queries;
       const timeStamp = Date.now() / 1000;

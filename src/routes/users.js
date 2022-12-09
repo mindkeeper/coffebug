@@ -20,7 +20,7 @@ const allowed = [
 const cloudinaryUpload = require("../middleware/cloudinary");
 //get all users
 usersRouter.get("/", isLogin(), allowedRoles("User", "Admin"), userHandler.get);
-usersRouter.post("/register", userHandler.create);
+// usersRouter.post("/register", userHandler.create);
 usersRouter.patch(
   "/edit-profile",
   isLogin(),
