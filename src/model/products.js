@@ -11,7 +11,7 @@ const productsModel = {
           console.log(error);
           return reject({ status: 500, msg: "Internal Server Error" });
         }
-        if (response.rows === 0)
+        if (result.rows.length === 0)
           return reject({ status: 404, msg: "Data Not Found" });
         return resolve({
           status: 200,
