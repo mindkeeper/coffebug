@@ -142,22 +142,21 @@ const transactionsModel = {
       });
     });
   },
-  createTransactions: (body) => {
+  createTransactions: (req) => {
     return new Promise((resolve, reject) => {
       const query =
         "insert into transactions (user_id, product_id, size_id, qty, promo_id, subtotal, delivery_id, total, payment_id, status_id, created_at, updated_at) values($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, to_timestamp($11), to_timestamp($12)) returning *";
       const {
-        user_id,
         product_id,
         size_id,
         qty,
         promo_id,
         subtotal,
         delivery_id,
-        total,
         payment_id,
-        status_id,
-      } = body;
+      } = req.body;
+      const user_id = req.userPayload.id;
+      const total = parseInt(subtotal) + parseInt(subtotal) * 0.1;
       const timeStamp = Date.now() / 1000;
       const values = [
         user_id,
@@ -169,7 +168,7 @@ const transactionsModel = {
         delivery_id,
         total,
         payment_id,
-        status_id,
+        1,
         timeStamp,
         timeStamp,
       ];

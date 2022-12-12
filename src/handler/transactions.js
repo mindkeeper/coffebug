@@ -36,7 +36,7 @@ const transactionsHandler = {
   },
   create: async (req, res) => {
     try {
-      const response = await transactionsModel.createTransactions(req.body);
+      const response = await transactionsModel.createTransactions(req);
       return resHelper.success(res, response.status, response);
     } catch (error) {
       console.log(error);
