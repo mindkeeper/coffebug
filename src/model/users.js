@@ -123,7 +123,7 @@ const userModels = {
         }
         let data = {};
         if (file) data = { image: imageUrl, ...result.rows[0] };
-        data = { image: imageUrl, ...result.rows[0] };
+        data = { ...result.rows[0] };
         return resolve({
           status: 200,
           msg: `${result.rows[0].display_name}, your profile successfully updated`,
