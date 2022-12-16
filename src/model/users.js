@@ -122,8 +122,8 @@ const userModels = {
           return reject({ status: 500, msg: "Internal Server Error" });
         }
         let data = {};
-        if (file) data = { Image: imageUrl, ...result.rows[0] };
-        data = { Image: imageUrl, ...result.rows[0] };
+        if (file) data = { image: imageUrl, ...result.rows[0] };
+        data = { image: imageUrl, ...result.rows[0] };
         return resolve({
           status: 200,
           msg: `${result.rows[0].display_name}, your profile successfully updated`,
