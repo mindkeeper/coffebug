@@ -100,22 +100,26 @@ const userModels = {
           query += `image = '${imageUrl}', `;
         }
         if (Object.keys(body).length === 0) {
-          query += `image = '${imageUrl}', updated_at = to_timestamp($1) where user_id = $2 returning display_name`;
+          query += `image = '${imageUrl}', updated_at = to_timestamp($1) where user_id = $2`;
           values.push(timeStamp, id);
         }
       }
+      let returning = "returning ";
       Object.keys(body).forEach((key, index, array) => {
         if (index === array.length - 1) {
+          returning += `${key}`;
           query += `${key} = $${index + 1}, updated_at = to_timestamp($${
             index + 2
-          }) where user_id = $${index + 3} returning display_name`;
+          }) where user_id = $${index + 3} ${returning}`;
           values.push(body[key], timeStamp, id);
           return;
         }
+        returning += `${key}, `;
         query += `${key} = $${index + 1}, `;
         values.push(body[key]);
       });
       console.log(query);
+      console.log(values);
       db.query(query, values, (error, result) => {
         if (error) {
           console.log(error);
@@ -126,7 +130,7 @@ const userModels = {
         data = { ...result.rows[0] };
         return resolve({
           status: 200,
-          msg: `${result.rows[0].display_name}, your profile successfully updated`,
+          msg: `your profile successfully updated`,
           data,
         });
       });
