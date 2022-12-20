@@ -1,17 +1,5 @@
 const multer = require("multer");
 const path = require("path");
-// const storage = multer.diskStorage({
-//   destination: (req, file, cb) => {
-//     cb(null, "./public/images");
-//   },
-//   filename: (req, file, cb) => {
-//     const fileName = `${file.fieldname}-${Date.now()}-${Math.round(
-//       Math.random() * 1e9
-//     )}${path.extname(file.originalname)}`;
-//     cb(null, fileName);
-//   },
-// });
-
 const memory = multer.memoryStorage();
 const multerOption = {
   memory,

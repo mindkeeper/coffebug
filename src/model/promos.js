@@ -25,9 +25,9 @@ const promosModel = {
       let link = "/api/promos?";
       const { code, page, limit } = params;
       const countQuery =
-        "select count(id) as count from promos where lower(code) like lower($1)";
+        "select count(id) as count from promos where lower(code) like lower($1) and id != $2";
       const query =
-        "select * from promos where lower(code) like lower($1) order by created_at desc limit $2 offset $3 ";
+        "select * from promos where lower(code) like lower($1) and id !=$4 order by created_at desc limit $2 offset $3 ";
       const sqlLimit = !limit ? 4 : parseInt(limit);
       const sqlOffset = !page || page === "1" ? 0 : parseInt(page - 1) * limit;
       let promoCode = "%%";
@@ -35,7 +35,7 @@ const promosModel = {
         link += `code=${code}`;
         promoCode = `%${code}%`;
       }
-      db.query(countQuery, [promoCode], (error, result) => {
+      db.query(countQuery, [promoCode, 1], (error, result) => {
         if (error) {
           console.log(error);
           return reject({
@@ -63,23 +63,27 @@ const promosModel = {
           prev,
           next,
         };
-        db.query(query, [promoCode, sqlLimit, sqlOffset], (error, result) => {
-          if (error) {
-            console.log(error);
-            return reject({
-              status: 500,
-              msg: "Internal Server Error",
+        db.query(
+          query,
+          [promoCode, sqlLimit, sqlOffset, 1],
+          (error, result) => {
+            if (error) {
+              console.log(error);
+              return reject({
+                status: 500,
+                msg: "Internal Server Error",
+              });
+            }
+            if (result.rows.length === 0)
+              return reject({ status: 404, msg: "Data not Found" });
+            return resolve({
+              status: 200,
+              msg: "List Promos",
+              data: result.rows,
+              meta,
             });
           }
-          if (result.rows.length === 0)
-            return reject({ status: 404, msg: "Data not Found" });
-          return resolve({
-            status: 200,
-            msg: "List Promos",
-            data: result.rows,
-            meta,
-          });
-        });
+        );
       });
     });
   },

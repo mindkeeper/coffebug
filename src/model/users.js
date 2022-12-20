@@ -128,8 +128,6 @@ const userModels = {
         const data = file
           ? { image: imageUrl, ...result.rows[0] }
           : { ...result.rows[0] };
-        // if (file) data = { image: imageUrl, ...result.rows[0] };
-        // data = { ...result.rows[0] };
         return resolve({
           status: 200,
           msg: `your profile successfully updated`,
