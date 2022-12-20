@@ -136,23 +136,26 @@ const promosModel = {
       if (file) {
         imageUrl = `${file.url}`;
         if (Object.keys(body).length === 0) {
-          query += `image = '${imageUrl}', updated_at = to_timestamp($1) where id = $2 returning code`;
+          query += `image = '${imageUrl}', updated_at = to_timestamp($1) where id = $2`;
           values.push(timestamp, params.id);
         }
         if (Object.keys(body).length > 0) {
           query += `image = '${imageUrl}', `;
         }
       }
-
+      let returning = "returning ";
       Object.keys(body).forEach((key, index, array) => {
         if (index === array.length - 1) {
+          returning += `${key}`;
           query += `${key} = $${index + 1}, updated_at = to_timestamp($${
             index + 2
-          })  where id = $${index + 3} returning code`;
+          })  where id = $${index + 3} ${returning}`;
+
           values.push(body[key], timestamp, params.id);
           return;
         }
         query += `${key} = $${index + 1}, `;
+        returning += `${key}, `;
         values.push(body[key]);
       });
 
@@ -164,15 +167,18 @@ const promosModel = {
             msg: "Internal Server Error",
           });
         }
-        if (result.rows.length === 0)
+        if (result.rowCount === 0)
           return reject({
             status: 404,
             msg: "Update promo failed, promo not found",
           });
+        const data = file
+          ? { image: imageUrl, ...result.rows[0] }
+          : { ...result.rows[0] };
         return resolve({
           status: 201,
-          msg: `promo ${result.rows[0].code} updated sucessfully`,
-          data: { id: params.id, ...body },
+          msg: `promo updated sucessfully`,
+          data,
         });
       });
     });
