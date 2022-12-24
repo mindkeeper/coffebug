@@ -10,7 +10,7 @@ const userModels = {
           console.log(error);
           return reject({ status: 500, msg: "Internal Server Error" });
         }
-        return resolve({ status: 200, data: result.rows });
+        return resolve({ status: 200, data: result.rows[0] });
       });
     });
   },
